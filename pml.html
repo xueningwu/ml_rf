@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>Using Algorithm Random Forest to predict personal activity</title>
+
+
+
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h1>Using Algorithm Random Forest to predict personal activity</h1>
+
+<h3>Summary: Using ramdom forest algorithm to training the model on 70% data, and use 30% data to test the result. before training the model, remove the columns with low variance, too many &#39;NA&#39; (more than 50% of # of rows) and remove time/date related columns.</h3>
+
+<p>Backgound: Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement â€“ a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.</p>
+
+<h4>Data processing, set workdir and load data.</h4>
+
+<pre><code class="r">setwd(&quot;c:\\temp\\ml&quot;)
+library(caret)
+pml_data &lt;- read.csv(&quot;pml-training.csv&quot;)
+</code></pre>
+
+<h4>remove the columns with low variance</h4>
+
+<pre><code class="r">col_rm &lt;- nearZeroVar(pml_data)
+pml_data1 &lt;- pml_data[, -col_rm]
+</code></pre>
+
+<h4>remove column with too many &#39;NA&#39; (more than 50% of # of rows)</h4>
+
+<pre><code class="r">pml_data2 &lt;- pml_data1[ ,colSums(is.na(pml_data1))&lt;nrow(pml_data1)/2]
+</code></pre>
+
+<h4>remove column time/date</h4>
+
+<pre><code class="r">pml_data3 &lt;- pml_data2[ ,c(-1,-3,-4,-5)]
+</code></pre>
+
+<h4>Select 70% data as training data</h4>
+
+<pre><code class="r">randomSelection &lt;- createDataPartition(pml_data3$classe, p = 0.7, list = FALSE)
+modelTraining &lt;- pml_data3[randomSelection, ]
+modelTesting &lt;- pml_data3[-randomSelection, ]
+</code></pre>
+
+<h4>training RF model, 1.5 hours, remarked to save time, as saved previously.</h4>
+
+<pre><code class="r"># rfModel &lt;- train(classe ~ ., data=modelTraining, method=&quot;rf&quot;, verbose=FALSE)
+</code></pre>
+
+<h4>save / load the model to save time</h4>
+
+<pre><code class="r">if (!file.exists(&quot;rfModel.save&quot;)) {
+        rfModel &lt;- rfModel
+        save(rfModel, file=&quot;rfModel.save&quot;)
+} else {
+        load(&quot;rfModel.save&quot;)
+}
+</code></pre>
+
+<h4>test on 30% data and show confusion matrix</h4>
+
+<pre><code class="r">rfPredictions &lt;- predict(rfModel, modelTesting)
+confusionMatrix(rfPredictions, modelTesting$classe)
+</code></pre>
+
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1674    0    0    0    0
+##          B    0 1139    0    0    0
+##          C    0    0 1026    0    0
+##          D    0    0    0  964    1
+##          E    0    0    0    0 1081
+## 
+## Overall Statistics
+##                                     
+##                Accuracy : 1         
+##                  95% CI : (0.999, 1)
+##     No Information Rate : 0.284     
+##     P-Value [Acc &gt; NIR] : &lt;2e-16    
+##                                     
+##                   Kappa : 1         
+##  Mcnemar&#39;s Test P-Value : NA        
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity             1.000    1.000    1.000    1.000    0.999
+## Specificity             1.000    1.000    1.000    1.000    1.000
+## Pos Pred Value          1.000    1.000    1.000    0.999    1.000
+## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.284    0.194    0.174    0.164    0.184
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000
+</code></pre>
+
+<p>data source: <a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a></p>
+
+</body>
+
+</html>
